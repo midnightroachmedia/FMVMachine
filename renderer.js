@@ -917,7 +917,7 @@ async function exportProject() {
         // Add video files
         for (const videoPath of videoList) {
             const videoContent = await fs.readFile(videoPath);
-            const filename = videoPath.split('/').pop(); // Extract filename
+            const filename = videoPath.split(/[/\\]/).pop(); // Extract filename
             zip.file(`videos/${filename}`, videoContent);
         }
 
@@ -962,25 +962,25 @@ function generateHTMLContent() {
 
 function generateJavaScriptContent() {
     // Extract filenames from paths
-    const videoFilenames = videoList.map(path => path.split('/').pop());
+    const videoFilenames = videoList.map(path => path.split(/[/\\]/).pop());
 
     // Create a new hotspotsByVideo object with updated video paths
     const exportHotspotsByVideo = {};
     for (const [key, value] of Object.entries(hotspotsByVideo)) {
-        const newKey = 'videos/' + key.split('/').pop();
+        const newKey = 'videos/' + key.split(/[/\\]/).pop();
         exportHotspotsByVideo[newKey] = value.map(hotspot => ({
             ...hotspot,
-            videoLink: hotspot.videoLink ? 'videos/' + hotspot.videoLink.split('/').pop() : ''
+            videoLink: hotspot.videoLink ? 'videos/' + hotspot.videoLink.split(/[/\\]/).pop() : ''
         }));
     }
 
     // Create a new videoOptions object with updated video paths
     const exportVideoOptions = {};
     for (const [key, value] of Object.entries(videoOptions)) {
-        const newKey = 'videos/' + key.split('/').pop();
+        const newKey = 'videos/' + key.split(/[/\\]/).pop();
         const newValue = {...value};
         if (newValue.playNext) {
-            newValue.playNext = 'videos/' + newValue.playNext.split('/').pop();
+            newValue.playNext = 'videos/' + newValue.playNext.split(/[/\\]/).pop();
         }
         exportVideoOptions[newKey] = newValue;
     }
