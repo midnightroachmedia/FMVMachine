@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>FMVMachine</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        #top-menu {
+            padding: 10px;
+            background-color: #f0f0f0;
+        }
+        #main-content {
+            display: flex;
+            flex: 1;
+        }
+        #left-sidebar, #right-sidebar {
+            width: 200px;
+            padding: 10px;
+            margin-left: 10px;
+            margin-right: 10px;
+            background-color: #e0e0e0;
+            overflow-y: auto;
+        }
+        #central-area {
+            flex: 1;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #controls-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #video-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+        }
+        #video-player {
+            width: 100%;
+        }
+        #video-controls {
+            margin-top: 10px;
+            width: 100%;
+        }
+        #timeline-slider {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        #timestamp-display {
+            text-align: center;
+            margin-top: 5px;
+            margin-bottom: 5px;
+            font-family: monospace;
+        }
+        #hotspot-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        .hotspot {
+            position: absolute;
+            background-color: rgba(255, 0, 0, 0.5);
+            border: 2px solid red;
+            pointer-events: auto;
+            cursor: pointer;
+        }
+        #hotspot-form {
+            display: none;
+            position: absolute;
+            background-color: white;
+            padding: 10px;
+            border-radius: 5px;
+            width: 250px; /* Match the width of the right sidebar */
+            right: 20px;
+            border: 1px solid black;
+            z-index: 1000;
+        }
+        .highlighted {
+            border: 2px solid yellow; /* Example highlight style */
+        }
+        #video-list li, #hotspot-list li {
+            cursor: pointer;
+            padding: 5px;
+            margin-bottom: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        #video-list li:hover, #hotspot-list li:hover {
+            background-color: #e0c00a;
+        }
+
+        #video-list li.selected, #hotspot-list li.selected {
+            background-color: #e0c00a;
+            font-weight: bold;
+        }
+        #video-options-dialogue {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border: 1px solid black;
+            z-index: 1000;
+        }
+
+        #video-options-dialogue div {
+            margin-bottom: 10px;
+        }
+
+        .fullscreen-control {
+            position: fixed !important;
+            z-index: 9999 !important;
+            background-color: rgba(0, 0, 0, 0.7) !important;
+            color: white !important;
+            padding: 10px !important;
+            border-radius: 5px !important;
+            transition: opacity 0.3s !important;
+        }
+
+        #video-container:not(:hover) .fullscreen-control {
+            opacity: 0.3;
+        }
+
+        #timeline-slider.fullscreen-control {
+            width: 90% !important;
+            left: 5% !important;
+        }
+
+       /* #playback-controls.fullscreen-control button {
+            align-self: center;
+            background-color: transparent !important;
+            border: none !important;
+            color: white !important;
+            font-size: 18px !important;
+            cursor: pointer !important;
+        }*/
+    </style>
+</head>
+<body>
+    <div id="video-options-dialogue" style="display: none;">
+        <h3>Video Options</h3>
+        <div>
+            <label for="play-next-select">Play Next:</label>
+            <select id="play-next-select"></select>
+        </div>
+        <div>
+            <label for="loop-checkbox">Loop:</label>
+            <input type="checkbox" id="loop-checkbox">
+        </div>
+        <button id="save-video-options">Save</button>
+        <button id="close-video-options">Close</button>
+    </div>    
+    <div id="top-menu">
+        <button id="import-video">Import Video</button>
+        <button id="create-hotspot">Create Hotspot</button>
+        <button id="delete-hotspot">Delete Hotspot</button>
+        <button id="toggle-mode">Switch to Playback Mode</button>
+        <button id="fullscreen-toggle">Toggle Fullscreen</button>
+        <button id="save-project">Save Project</button>
+        <button id="load-project">Load Project</button>
+    </div>
+    <div id="main-content">
+        <div id="left-sidebar">
+            <h3>Video List</h3>
+            <ul id="video-list"></ul>
+        </div>
+        <div id="central-area">
+            <div id="video-container">
+                <video id="video-player"></video>
+                <div id="hotspot-overlay"></div>
+            </div>
+            <div id="video-controls"></div>
+            <input type="range" id="timeline-slider" min="0" max="100" value="0">
+            <div id="timestamp-display">0:00 / 0:00</div>
+            <div id="playback-controls"></div>
+            <button id="video-options-btn">Video Options</button>
+        </div>
+        <div id="right-sidebar">
+            <h3>Hotspots</h3>
+            <ul id="hotspot-list"></ul>
+        </div>
+    </div>
+    <div id="hotspot-form">
+        <input type="text" id="hotspot-text" placeholder="Hotspot Text">
+        <input type="text" id="hotspot-link" placeholder="External Link (optional)">
+        <select id="hotspot-video-link">
+            <option value="">Select a video to link (optional)</option>
+        </select>
+        <button id="save-hotspot">Save Hotspot</button>
+        <button id="cancel-hotspot">Cancel</button>
+    </div>
+    <script src="renderer.js"></script>
+</body>
+</html>

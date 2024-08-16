@@ -1,0 +1,67 @@
+{
+  "name": "fmvmachine",
+  "version": "0.1.0",
+  "description": "A cross-platform, locally-running interactive video editor using H5P",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "electron-builder",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "dist:mac": "electron-builder --mac",
+    "dist:win": "electron-builder --win",
+    "dist:linux": "electron-builder --linux"
+  },
+  "keywords": [
+    "video",
+    "editor",
+    "interactive",
+    "H5P",
+    "electron"
+  ],
+  "author": "Midnight Roach Media",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^31.3.1",
+    "electron-builder": "^24.13.3"
+  },
+  "dependencies": {
+    "fs-extra": "^11.2.0",
+    "glob": "^11.0.0",
+    "h5p-standalone": "^3.5.1",
+    "jszip": "^3.10.1"
+  },
+  "overrides": {
+    "glob": "^11.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "build": {
+  "appId": "com.midnightroachmedia.fmvmachine",
+  "productName": "FMVMachine",
+  "files": [
+    "**/*",
+    "!.gitignore"
+  ],
+  "mac": {
+    "category": "public.app-category.video"
+  },
+  "win": {
+    "target": [
+      "nsis"
+    ]
+  },
+  "linux": {
+    "target": [
+      "AppImage",
+      "deb"
+    ],
+    "category": "Video"
+  },
+  "directories": {
+    "output": "release/"
+  }
+}
+}
