@@ -138,6 +138,7 @@ function activateHotspotCreation() {
     hotspotOverlay.style.pointerEvents = 'auto';
     hotspotOverlay.addEventListener('mousedown', startCreatingHotspot);
     createHotspotBtn.textContent = 'Cancel Hotspot Creation';
+    resetHotspotForm();
 }
 
 function deactivateHotspotCreation() {
@@ -180,9 +181,13 @@ function startCreatingHotspot(event) {
     hotspotsByVideo[currentVideoPath].push(newHotspot);
     tempHotspotIndex = hotspotsByVideo[currentVideoPath].length - 1;
 
+    resetHotspotForm();
+
     document.getElementById('hotspot-text').value = '';
     document.getElementById('hotspot-link').value = '';
     document.getElementById('hotspot-video-link').value = '';
+    document.getElementById('cancel-hotspot').style.display = 'inline-block';
+    document.getElementById('save-hotspot').textContent = 'Save Hotspot';
 
     document.addEventListener('mousemove', resizeHotspot);
     document.addEventListener('mouseup', finishCreatingHotspot);
@@ -249,6 +254,7 @@ function finishCreatingHotspot(event) {
     hotspotOverlay.style.pointerEvents = 'none';
     
     createHotspotBtn.textContent = 'Create Hotspot';
+
 }
 
 function saveHotspot() {
@@ -256,6 +262,8 @@ function saveHotspot() {
     hotspot.text = document.getElementById('hotspot-text').value;
     hotspot.externalLink = document.getElementById('hotspot-link').value;
     hotspot.videoLink = document.getElementById('hotspot-video-link').value;
+    hotspot.startTime = parseInt(document.getElementById('hotspot-start-time').value) || 0;
+    hotspot.endTime = parseInt(document.getElementById('hotspot-end-time').value) || Math.floor(videoPlayer.duration);
 
     document.getElementById('hotspot-form').style.display = 'none';
     updateHotspotList();
@@ -271,6 +279,7 @@ function cancelHotspot() {
     tempHotspotIndex = null;
     deactivateHotspotCreation();
     renderHotspots();
+
 }
 
 function updateHotspotList() {
@@ -279,17 +288,16 @@ function updateHotspotList() {
     if (currentVideoPath && hotspotsByVideo[currentVideoPath]) {
         hotspotsByVideo[currentVideoPath].forEach((hotspot, index) => {
             const li = document.createElement('li');
-            li.textContent = `Hotspot ${index + 1}: ${hotspot.text}`;
+            li.textContent = `Hotspot ${index + 1}: ${hotspot.text} (${formatTime(hotspot.startTime)} - ${formatTime(hotspot.endTime)})`;
             if (hotspot.videoLink) {
                 li.textContent += ` (Links to: ${path.basename(hotspot.videoLink)})`;
             }
             li.onclick = () => {
                 if (isEditMode) {
-                    selectHotspot(index);
                     editHotspot(index);
                 }
             };
-            if (index === selectedHotspotIndex) {
+            if (index === editingHotspotIndex) {
                 li.classList.add('selected');
             }
             list.appendChild(li);
@@ -297,21 +305,26 @@ function updateHotspotList() {
     }
 }
 
+function formatTime(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+}
+
+let editingHotspotIndex = null;
+let isCreatingNewHotspot = false;
+
 function editHotspot(index) {
-    const hotspotElements = hotspotOverlay.getElementsByClassName('hotspot');
-    Array.from(hotspotElements).forEach(el => el.style.border = '2px dashed yellow');
-
-    const selectedHotspot = hotspotElements[index];
-    if (selectedHotspot) {
-        selectedHotspot.style.border = '2px solid red';
-    }
-
+    editingHotspotIndex = index;
+    isCreatingNewHotspot = false;
     const hotspot = hotspotsByVideo[currentVideoPath][index];
     const form = document.getElementById('hotspot-form');
     
-    document.getElementById('hotspot-text').value = hotspot.text;
+    document.getElementById('hotspot-text').value = hotspot.text || '';
     document.getElementById('hotspot-link').value = hotspot.externalLink || '';
     document.getElementById('hotspot-video-link').value = hotspot.videoLink || '';
+    document.getElementById('hotspot-start-time').value = hotspot.startTime || 0;
+    document.getElementById('hotspot-end-time').value = hotspot.endTime || Math.floor(videoPlayer.duration);
     
     const videoRect = videoPlayer.getBoundingClientRect();
     const scaleX = videoRect.width / originalVideoWidth;
@@ -319,27 +332,49 @@ function editHotspot(index) {
     form.style.left = `${hotspot.x * scaleX + hotspot.width * scaleX}px`;
     form.style.top = `${hotspot.y * scaleY}px`;
     
+    // Hide the Cancel button when editing an existing hotspot
+    document.getElementById('cancel-hotspot').style.display = 'none';
+    document.getElementById('save-hotspot').textContent = 'Update Hotspot';
+    
     form.style.display = 'block';
     
-    document.getElementById('save-hotspot').onclick = () => saveEditedHotspot(index);
-    document.getElementById('cancel-hotspot').onclick = cancelEditHotspot;
+    highlightSelectedHotspot(index);
 }
 
-function saveEditedHotspot(index) {
-    const hotspot = hotspotsByVideo[currentVideoPath][index];
+function saveEditedHotspot() {
+    if (editingHotspotIndex === null) return;
+    
+    const hotspot = hotspotsByVideo[currentVideoPath][editingHotspotIndex];
     hotspot.text = document.getElementById('hotspot-text').value;
     hotspot.externalLink = document.getElementById('hotspot-link').value;
     hotspot.videoLink = document.getElementById('hotspot-video-link').value;
+    hotspot.startTime = parseInt(document.getElementById('hotspot-start-time').value) || 0;
+    hotspot.endTime = parseInt(document.getElementById('hotspot-end-time').value) || Math.floor(videoPlayer.duration);
     
     document.getElementById('hotspot-form').style.display = 'none';
+    
     updateHotspotList();
     renderHotspots();
+    updateHotspotVisibility();
+
+    console.log('Hotspot saved:', hotspot); // For debugging
+
+    editingHotspotIndex = null;
 }
 
 function cancelEditHotspot() {
     document.getElementById('hotspot-form').style.display = 'none';
     const hotspotElements = hotspotOverlay.getElementsByClassName('hotspot');
     Array.from(hotspotElements).forEach(el => el.style.border = '2px dashed yellow');
+
+}
+
+function resetHotspotForm() {
+    document.getElementById('hotspot-text').value = '';
+    document.getElementById('hotspot-link').value = '';
+    document.getElementById('hotspot-video-link').value = '';
+    document.getElementById('hotspot-start-time').value = Math.floor(videoPlayer.currentTime);
+    document.getElementById('hotspot-end-time').value = Math.floor(videoPlayer.duration);
 }
 
 function selectHotspot(index) {
@@ -347,6 +382,7 @@ function selectHotspot(index) {
     updateHotspotList();
     renderHotspots();
     deleteHotspotBtn.style.display = 'inline-block';
+    
 }
 
 function deleteSelectedHotspot() {
@@ -355,6 +391,7 @@ function deleteSelectedHotspot() {
         selectedHotspotIndex = null;
         updateHotspotList();
         renderHotspots();
+        cancelEditHotspot();
         deleteHotspotBtn.style.display = 'none';
     }
 }
@@ -553,16 +590,66 @@ function renderHotspots() {
             hotspotElement.dataset.index = index;
             
             if (isEditMode) {
-                hotspotElement.style.border = index === selectedHotspotIndex ? '2px solid red' : '2px dashed yellow';
-                hotspotElement.style.cursor = 'default';
+                hotspotElement.style.border = index === editingHotspotIndex ? '2px solid red' : '2px dashed yellow';
+                hotspotElement.style.cursor = 'pointer';
+                hotspotElement.onclick = () => editHotspot(index);
             } else {
                 hotspotElement.addEventListener('click', handleHotspotClick);
             }
-            
+
             hotspotOverlay.appendChild(hotspotElement);
         });
     }
+    updateHotspotVisibility();
 }
+
+function updateHotspotVisibility() {
+    const currentTime = Math.floor(videoPlayer.currentTime);
+    if (currentVideoPath && hotspotsByVideo[currentVideoPath]) {
+        hotspotsByVideo[currentVideoPath].forEach((hotspot, index) => {
+            const hotspotElement = hotspotOverlay.querySelector(`[data-index="${index}"]`);
+            if (hotspotElement) {
+                const isVisible = currentTime >= hotspot.startTime && currentTime <= hotspot.endTime;
+                hotspotElement.style.display = isVisible ? 'block' : 'none';
+            }
+        });
+    }
+}
+
+function highlightSelectedHotspot(index) {
+    const hotspotElements = hotspotOverlay.getElementsByClassName('hotspot');
+    Array.from(hotspotElements).forEach((el, i) => {
+        el.style.border = i === index ? '2px solid red' : '2px dashed yellow';
+    });
+}
+
+document.getElementById('save-hotspot').addEventListener('click', saveEditedHotspot);
+document.getElementById('cancel-hotspot').addEventListener('click', () => {
+    document.getElementById('hotspot-form').style.display = 'none';
+    editingHotspotIndex = null;
+    renderHotspots();
+});
+
+videoPlayer.addEventListener('timeupdate', () => {
+    updateTimelineSlider();
+    updateHotspotVisibility();
+        
+    });
+
+function updateHotspotTimeRange() {
+    const startTime = parseInt(document.getElementById('hotspot-start-time').value) || 0;
+    const endTime = parseInt(document.getElementById('hotspot-end-time').value) || Math.floor(videoPlayer.duration);
+    
+    if (tempHotspotIndex !== null) {
+        const hotspot = hotspotsByVideo[currentVideoPath][tempHotspotIndex];
+        hotspot.startTime = startTime;
+        hotspot.endTime = endTime;
+        updateHotspotVisibility();
+    }
+}
+
+document.getElementById('hotspot-start-time').addEventListener('input', updateHotspotTimeRange);
+document.getElementById('hotspot-end-time').addEventListener('input', updateHotspotTimeRange);
 
 function handleHotspotClick(event) {
     event.stopPropagation();
@@ -710,12 +797,13 @@ window.addEventListener('resize', handleResize);
 videoPlayer.addEventListener('loadedmetadata', handleResize);
 
 function updateHotspotVisibility() {
-    const currentTime = videoPlayer.currentTime;
+    const currentTime = Math.floor(videoPlayer.currentTime);
     if (currentVideoPath && hotspotsByVideo[currentVideoPath]) {
         hotspotsByVideo[currentVideoPath].forEach((hotspot, index) => {
-            const hotspotElement = hotspotOverlay.children[index];
+            const hotspotElement = hotspotOverlay.querySelector(`[data-index="${index}"]`);
             if (hotspotElement) {
-                hotspotElement.style.display = (currentTime >= hotspot.time) ? 'block' : 'none';
+                const isVisible = currentTime >= (hotspot.startTime || 0) && currentTime <= (hotspot.endTime || Math.floor(videoPlayer.duration));
+                hotspotElement.style.display = isVisible ? 'block' : 'none';
             }
         });
     }
@@ -941,7 +1029,7 @@ function generateHTMLContent() {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Film</title>
+    <title>FMVMachine</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -1044,9 +1132,11 @@ function renderHotspots() {
             hotspotElement.style.height = \`\${hotspot.height * scaleY}px\`;
             hotspotElement.dataset.index = index;
             hotspotElement.addEventListener('click', handleHotspotClick);
+            
             hotspotOverlay.appendChild(hotspotElement);
         });
     }
+    updateHotspotVisibility();
 }
 
 function handleHotspotClick(event) {
@@ -1083,12 +1173,14 @@ function updateTimelineSlider() {
     const percentage = (videoPlayer.currentTime / videoPlayer.duration) * 100;
     timelineSlider.value = percentage;
     updateTimestamp();
+    updateHotspotVisibility();
 }
 
 function seekVideo() {
     const time = (timelineSlider.value / 100) * videoPlayer.duration;
     videoPlayer.currentTime = time;
     updateTimestamp();
+    updateHotspotVisibility();
 }
 
 function updateTimestamp() {
@@ -1126,9 +1218,10 @@ function updateHotspotVisibility() {
     const currentTime = videoPlayer.currentTime;
     if (currentVideoPath && hotspotsByVideo[currentVideoPath]) {
         hotspotsByVideo[currentVideoPath].forEach((hotspot, index) => {
-            const hotspotElement = hotspotOverlay.children[index];
+            const hotspotElement = hotspotOverlay.querySelector(\`[data-index="\${index}"]\`);
             if (hotspotElement) {
-                hotspotElement.style.display = (currentTime >= hotspot.time) ? 'block' : 'none';
+                const isVisible = currentTime >= hotspot.startTime && currentTime <= hotspot.endTime;
+                hotspotElement.style.display = isVisible ? 'block' : 'none';
             }
         });
     }

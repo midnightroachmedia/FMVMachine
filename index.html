@@ -78,15 +78,91 @@
         }
         #hotspot-form {
             display: none;
-            position: absolute;
-            background-color: white;
-            padding: 10px;
-            border-radius: 5px;
-            width: 250px; /* Match the width of the right sidebar */
-            right: 20px;
-            border: 1px solid black;
-            z-index: 1000;
-        }
+    position: absolute;
+    top: 100%;
+    left: 100%;
+    background-color: rgba(240, 240, 240, 0.9);
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    max-width: 400px;
+    width: 90%;
+    z-index: 1000;
+}
+
+#hotspot-form input[type="text"],
+#hotspot-form input[type="number"],
+#hotspot-form select {
+    width: 100%;
+    padding: 2%;
+    margin-bottom: 2%;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+#hotspot-form .time-range {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 2%;
+}
+
+#hotspot-form .time-range label {
+    margin-right: 2%;
+    font-size: 0.9em;
+    flex: 1 0 100%;
+    margin-bottom: 1%;
+}
+
+#hotspot-form .time-range input[type="number"] {
+    width: 30%;
+    margin-right: 2%;
+    font-size: 0.9em;
+}
+
+#hotspot-form .time-range span {
+    margin: 0 2%;
+    font-size: 0.9em;
+}
+
+#hotspot-form button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 2% 4%;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 2%;
+    font-size: 0.9em;
+}
+
+#hotspot-form button:hover {
+    background-color: #45a049;
+}
+
+#hotspot-form button#cancel-hotspot {
+    background-color: #f44336;
+}
+
+#hotspot-form button#cancel-hotspot:hover {
+    background-color: #da190b;
+}
+
+@media (max-width: 600px) {
+    #hotspot-form {
+        width: 95%;
+    }
+
+    #hotspot-form .time-range input[type="number"] {
+        width: 40%;
+    }
+
+    #hotspot-form button {
+        width: 100%;
+        margin-bottom: 2%;
+    }
+}
         .highlighted {
             border: 2px solid yellow; /* Example highlight style */
         }
@@ -199,6 +275,12 @@
         <select id="hotspot-video-link">
             <option value="">Select a video to link (optional)</option>
         </select>
+        <div class="time-range">
+            <label>Duration/Seconds:</label>
+            <input type="number" id="hotspot-start-time" placeholder="From" min="0" step="1">
+            <span>to</span>
+            <input type="number" id="hotspot-end-time" placeholder="To" min="0" step="1">
+        </div>
         <button id="save-hotspot">Save Hotspot</button>
         <button id="cancel-hotspot">Cancel</button>
     </div>
