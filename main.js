@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
 const path = require('path');
 const os = require('os');
 const fs = require('fs-extra');
@@ -11,7 +11,14 @@ function createWindow() {
       nodeIntegration: true,
       contextIsolation: false,
       enableRemoteModule: true
-    }
+    },
+    autoHideMenuBar: true,
+    frame: process.platform !== 'darwin', // Use frameless window on macOS
+    titleBarStyle: 'hiddenInset',
+    trafficLightPosition: { x: 20, y: 20 },
+    icon: path.join(__dirname, 'assets', 
+      process.platform === 'win32' ? 'icoWindows.ico' : 
+      process.platform === 'darwin' ? 'icoMacOs.icns' : 'icoLinux.png')
   });
 
   win.webContents.session.webRequest.onHeadersReceived((details, callback) => {
@@ -28,9 +35,20 @@ function createWindow() {
   win.loadFile('index.html');
   // Uncomment the following line to open DevTools on start
   // win.webContents.openDevTools();
+  Menu.setApplicationMenu(null);
+  win.setMenuBarVisibility(false);
+  if (process.platform === 'darwin') {
+    const template = [];
+    const menu = Menu.buildFromTemplate(template);
+    Menu.setApplicationMenu(menu);
+  }
 }
 
 app.whenReady().then(createWindow);
+
+if (process.platform === 'darwin') {
+  app.dock.setIcon(path.join(__dirname, 'assets', 'icoMacOs.icns'));
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

@@ -46,19 +46,22 @@
     "!.gitignore"
   ],
   "mac": {
-    "category": "public.app-category.video"
+    "category": "public.app-category.video",
+    "icon": "assets/icoMacOs.icns"
   },
   "win": {
     "target": [
       "nsis"
-    ]
+    ],
+    "icon": "assets/icoWindows.ico"
   },
   "linux": {
     "target": [
       "AppImage",
       "deb"
     ],
-    "category": "Video"
+    "category": "Video",
+    "icon": "assets/icoLinux.png"
   },
   "directories": {
     "output": "release/"

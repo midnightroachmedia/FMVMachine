@@ -13,14 +13,21 @@
         }
         #top-menu {
             padding: 10px;
+            padding-top: 50px;
             background-color: #f0f0f0;
+            -webkit-app-region: drag;
         }
+        #top-menu button {
+            -webkit-app-region: no-drag; /* Makes buttons clickable */
+        }
+
         #main-content {
             display: flex;
             flex: 1;
         }
         #left-sidebar, #right-sidebar {
             width: 200px;
+            height: 400px;
             padding: 10px;
             margin-left: 10px;
             margin-right: 10px;
@@ -78,91 +85,91 @@
         }
         #hotspot-form {
             display: none;
-    position: absolute;
-    top: 100%;
-    left: 100%;
-    background-color: rgba(240, 240, 240, 0.9);
-    padding: 20px;
-    border-radius: 5px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-    max-width: 400px;
-    width: 90%;
-    z-index: 1000;
-}
+            position: absolute;
+            top: 100%;
+            left: 100%;
+            background-color: rgba(240, 240, 240, 0.9);
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            max-width: 400px;
+            width: 90%;
+            z-index: 1000;
+        }
 
-#hotspot-form input[type="text"],
-#hotspot-form input[type="number"],
-#hotspot-form select {
-    width: 100%;
-    padding: 2%;
-    margin-bottom: 2%;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 0.9em;
-}
+        #hotspot-form input[type="text"],
+        #hotspot-form input[type="number"],
+        #hotspot-form select {
+            width: 100%;
+            padding: 2%;
+            margin-bottom: 2%;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
 
-#hotspot-form .time-range {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    margin-bottom: 2%;
-}
+        #hotspot-form .time-range {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 2%;
+        }
 
-#hotspot-form .time-range label {
-    margin-right: 2%;
-    font-size: 0.9em;
-    flex: 1 0 100%;
-    margin-bottom: 1%;
-}
+        #hotspot-form .time-range label {
+            margin-right: 2%;
+            font-size: 0.9em;
+            flex: 1 0 100%;
+            margin-bottom: 1%;
+        }
 
-#hotspot-form .time-range input[type="number"] {
-    width: 30%;
-    margin-right: 2%;
-    font-size: 0.9em;
-}
+        #hotspot-form .time-range input[type="number"] {
+            width: 30%;
+            margin-right: 2%;
+            font-size: 0.9em;
+        }
 
-#hotspot-form .time-range span {
-    margin: 0 2%;
-    font-size: 0.9em;
-}
+        #hotspot-form .time-range span {
+            margin: 0 2%;
+            font-size: 0.9em;
+        }
 
-#hotspot-form button {
-    background-color: #4CAF50;
-    color: white;
-    padding: 2% 4%;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    margin-right: 2%;
-    font-size: 0.9em;
-}
+        #hotspot-form button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 2% 4%;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 2%;
+            font-size: 0.9em;
+        }
 
-#hotspot-form button:hover {
-    background-color: #45a049;
-}
+        #hotspot-form button:hover {
+            background-color: #45a049;
+        }
 
-#hotspot-form button#cancel-hotspot {
-    background-color: #f44336;
-}
+        #hotspot-form button#cancel-hotspot {
+            background-color: #f44336;
+        }
 
-#hotspot-form button#cancel-hotspot:hover {
-    background-color: #da190b;
-}
+        #hotspot-form button#cancel-hotspot:hover {
+            background-color: #da190b;
+        }
 
-@media (max-width: 600px) {
-    #hotspot-form {
-        width: 95%;
+        @media (max-width: 600px) {
+        #hotspot-form {
+            width: 95%;
     }
 
-    #hotspot-form .time-range input[type="number"] {
-        width: 40%;
+        #hotspot-form .time-range input[type="number"] {
+            width: 40%;
     }
 
-    #hotspot-form button {
-        width: 100%;
-        margin-bottom: 2%;
+        #hotspot-form button {
+            width: 100%;
+            margin-bottom: 2%;
     }
-}
+        }
         .highlighted {
             border: 2px solid yellow; /* Example highlight style */
         }
@@ -245,6 +252,7 @@
         <button id="delete-hotspot">Delete Hotspot</button>
         <button id="toggle-mode">Switch to Playback Mode</button>
         <button id="fullscreen-toggle">Toggle Fullscreen</button>
+        <button id="new-project-btn">New Project</button>
         <button id="save-project">Save Project</button>
         <button id="load-project">Load Project</button>
     </div>

@@ -40,6 +40,7 @@ const loopCheckbox = document.getElementById('loop-checkbox');
 const saveVideoOptionsBtn = document.getElementById('save-video-options');
 const closeVideoOptionsBtn = document.getElementById('close-video-options');
 const deleteHotspotBtn = document.getElementById('delete-hotspot');
+const newProjectBtn = document.getElementById('new-project-btn');
 
 // Add the export button to the top menu
 const exportBtn = document.createElement('button');
@@ -53,6 +54,7 @@ saveVideoOptionsBtn.addEventListener('click', saveVideoOptions);
 closeVideoOptionsBtn.addEventListener('click', closeVideoOptions);
 videoPlayer.addEventListener('ended', handleVideoEnd);
 document.addEventListener('fullscreenchange', updateControlsVisibility);
+newProjectBtn.addEventListener('click', newProject);
 
 importVideoBtn.addEventListener('click', () => {
     ipcRenderer.send('import-video');
@@ -397,6 +399,10 @@ function deleteSelectedHotspot() {
 }
 
 function displayVideo(filePath) {
+    if (currentVideoPath !== filePath) {
+        // Close the hotspot edit menu if it's open
+        document.getElementById('hotspot-form').style.display = 'none';
+    }
     currentVideoPath = filePath;
     videoPlayer.src = filePath;
     videoPlayer.style.display = 'block';
@@ -672,6 +678,11 @@ function toggleMode() {
     toggleModeBtn.textContent = isEditMode ? 'Switch to Playback Mode' : 'Switch to Edit Mode';
     createHotspotBtn.style.display = isEditMode ? 'inline-block' : 'none';
     videoOptionsBtn.style.display = isEditMode ? 'inline-block' : 'none';
+
+    // Close the hotspot edit menu when switching to playback mode
+    if (!isEditMode) {
+    document.getElementById('hotspot-form').style.display = 'none';
+    }
     
     deactivateHotspotCreation();
     
@@ -807,6 +818,55 @@ function updateHotspotVisibility() {
             }
         });
     }
+}
+
+function newProject() {
+    // Ask for confirmation
+    if (!confirm("Are you sure you want to start a new project? All unsaved changes will be lost.")) {
+        return;
+    }
+
+    // Reset all state variables
+    videoList = [];
+    hotspotsByVideo = {};
+    currentVideoPath = null;
+    isCreatingHotspot = false;
+    tempHotspot = null;
+    tempHotspotIndex = null;
+    isEditMode = true;
+    selectedVideoIndex = null;
+    selectedHotspotIndex = null;
+    videoOptions = {};
+    shouldAutoPlay = false;
+    originalVideoWidth = 0;
+    originalVideoHeight = 0;
+
+    // Clear the UI
+    document.getElementById('video-list').innerHTML = '';
+    document.getElementById('hotspot-list').innerHTML = '';
+    hotspotOverlay.innerHTML = '';
+    videoPlayer.src = '';
+    videoPlayer.style.display = 'none';
+    document.getElementById('hotspot-form').style.display = 'none';
+
+    // Reset controls
+    videoControls.style.display = 'none';
+    timelineSlider.style.display = 'none';
+    timestampDisplay.textContent = '0:00 / 0:00';
+    playbackControls.innerHTML = '';
+
+    // Reset mode
+    isEditMode = true;
+    toggleModeBtn.textContent = 'Switch to Playback Mode';
+    createHotspotBtn.style.display = 'inline-block';
+    videoOptionsBtn.style.display = 'none';
+    deleteHotspotBtn.style.display = 'none';
+
+    // Clear any open dialogs
+    videoOptionsDialogue.style.display = 'none';
+
+    // Re-initialize any necessary components
+    updateControlsVisibility();
 }
 
 async function saveProject() {
