@@ -285,6 +285,7 @@ function cancelHotspot() {
     updateHotspotList(); // Add this line
     deactivateHotspotCreation();
     renderHotspots();
+    deleteHotspotBtn.style.display = 'none';
 
 }
 
@@ -333,7 +334,7 @@ let isCreatingNewHotspot = false;
 
 function editHotspot(index) {
     editingHotspotIndex = index;
-    isCreatingNewHotspot = false;
+    isCreatingNewHotspot;
     const hotspot = hotspotsByVideo[currentVideoPath][index];
     const form = document.getElementById('hotspot-form');
 
@@ -356,8 +357,10 @@ function editHotspot(index) {
     document.getElementById('save-hotspot').textContent = 'Update Hotspot';
     
     form.style.display = 'block';
+    deleteHotspotBtn.style.display = 'inline-block';
     
     highlightSelectedHotspot(index);
+    updateHotspotList();
 }
 
 function saveEditedHotspot() {
@@ -375,6 +378,7 @@ function saveEditedHotspot() {
     updateHotspotList();
     renderHotspots();
     updateHotspotVisibility();
+    deleteHotspotBtn.style.display = 'none';
 
     console.log('Hotspot saved:', hotspot); // For debugging
 
@@ -385,6 +389,7 @@ function cancelEditHotspot() {
     document.getElementById('hotspot-form').style.display = 'none';
     const hotspotElements = hotspotOverlay.getElementsByClassName('hotspot');
     Array.from(hotspotElements).forEach(el => el.style.border = '2px dashed yellow');
+    deleteHotspotBtn.style.display = 'none';
 
 }
 
@@ -398,9 +403,7 @@ function resetHotspotForm() {
 
 function selectHotspot(index) {
     selectedHotspotIndex = index;
-    renderHotspots();
-    deleteHotspotBtn.style.display = 'inline-block';
-    
+    renderHotspots();   
     updateHotspotList(); // This will now handle the highlighting
 }
 
