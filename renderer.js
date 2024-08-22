@@ -19,6 +19,13 @@ let videoOptions = {};
 let shouldAutoPlay = false;
 let originalVideoWidth = 0;
 let originalVideoHeight = 0;
+let isDragging = false;
+let currentX;
+let currentY;
+let initialX;
+let initialY;
+let xOffset = 0;
+let yOffset = 0;
 
 const importVideoBtn = document.getElementById('import-video');
 const createHotspotBtn = document.getElementById('create-hotspot');
@@ -41,6 +48,8 @@ const saveVideoOptionsBtn = document.getElementById('save-video-options');
 const closeVideoOptionsBtn = document.getElementById('close-video-options');
 const deleteHotspotBtn = document.getElementById('delete-hotspot');
 const newProjectBtn = document.getElementById('new-project-btn');
+const hotspotForm = document.getElementById("hotspot-form");
+const dragHandle = document.getElementById("hotspot-drag-handle");
 
 // Add the export button to the top menu
 const exportBtn = document.createElement('button');
@@ -55,6 +64,16 @@ closeVideoOptionsBtn.addEventListener('click', closeVideoOptions);
 videoPlayer.addEventListener('ended', handleVideoEnd);
 document.addEventListener('fullscreenchange', updateControlsVisibility);
 newProjectBtn.addEventListener('click', newProject);
+dragHandle.addEventListener("mousedown", dragStart);
+document.addEventListener("mousemove", drag);
+document.addEventListener("mouseup", dragEnd);
+
+document.addEventListener('fullscreenchange', () => {
+    setTimeout(() => {
+        renderHotspots();
+        updateHotspotVisibility();
+    }, 100);
+});
 
 importVideoBtn.addEventListener('click', () => {
     ipcRenderer.send('import-video');
@@ -391,6 +410,36 @@ function cancelEditHotspot() {
     Array.from(hotspotElements).forEach(el => el.style.border = '2px dashed yellow');
     deleteHotspotBtn.style.display = 'none';
 
+}
+
+function dragStart(e) {
+    if (e.target === dragHandle) {
+        isDragging = true;
+        initialX = e.clientX - xOffset;
+        initialY = e.clientY - yOffset;
+        e.preventDefault(); // Prevent text selection during drag
+    }
+}
+
+function drag(e) {
+    if (isDragging) {
+        e.preventDefault();
+        currentX = e.clientX - initialX;
+        currentY = e.clientY - initialY;
+
+        xOffset = currentX;
+        yOffset = currentY;
+
+        setTranslate(currentX, currentY, hotspotForm);
+    }
+}
+
+function dragEnd(e) {
+    isDragging = false;
+}
+
+function setTranslate(xPos, yPos, el) {
+    el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`;
 }
 
 function resetHotspotForm() {
@@ -759,6 +808,11 @@ function toggleFullscreen() {
     } else {
         document.exitFullscreen();
     }
+    // Add a slight delay to ensure the fullscreen transition is complete
+    setTimeout(() => {
+        renderHotspots();
+        updateHotspotVisibility();
+    }, 100);
 }
 
 function updateControlsVisibility() {

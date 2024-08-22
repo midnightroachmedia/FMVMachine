@@ -96,7 +96,14 @@
             width: 90%;
             z-index: 1000;
         }
-
+        #hotspot-drag-handle {
+            cursor: move;
+            background-color: #fc9a08;
+            padding: 5px;
+            margin-bottom: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
         #hotspot-form input[type="text"],
         #hotspot-form input[type="number"],
         #hotspot-form select {
@@ -107,32 +114,27 @@
             border-radius: 4px;
             font-size: 0.9em;
         }
-
         #hotspot-form .time-range {
             display: flex;
             flex-wrap: wrap;
             align-items: center;
             margin-bottom: 2%;
         }
-
         #hotspot-form .time-range label {
             margin-right: 2%;
             font-size: 0.9em;
             flex: 1 0 100%;
             margin-bottom: 1%;
         }
-
         #hotspot-form .time-range input[type="number"] {
             width: 30%;
             margin-right: 2%;
             font-size: 0.9em;
         }
-
         #hotspot-form .time-range span {
             margin: 0 2%;
             font-size: 0.9em;
         }
-
         #hotspot-form button {
             background-color: #4CAF50;
             color: white;
@@ -143,28 +145,22 @@
             margin-right: 2%;
             font-size: 0.9em;
         }
-
         #hotspot-form button:hover {
             background-color: #45a049;
         }
-
         #hotspot-form button#cancel-hotspot {
             background-color: #f44336;
         }
-
         #hotspot-form button#cancel-hotspot:hover {
             background-color: #da190b;
         }
-
         @media (max-width: 600px) {
         #hotspot-form {
             width: 95%;
     }
-
         #hotspot-form .time-range input[type="number"] {
             width: 40%;
     }
-
         #hotspot-form button {
             width: 100%;
             margin-bottom: 2%;
@@ -179,11 +175,9 @@
             margin-bottom: 5px;
             transition: background-color 0.3s ease;
         }
-
         #video-list li:hover, #hotspot-list li:hover {
             background-color: #e0c00a;
         }
-
         #video-list li.selected, #hotspot-list li.selected {
             background-color: #e0c00a;
             font-weight: bold;
@@ -198,11 +192,9 @@
             border: 1px solid black;
             z-index: 1000;
         }
-
         #video-options-dialogue div {
             margin-bottom: 10px;
         }
-
         .fullscreen-control {
             position: fixed !important;
             z-index: 9999 !important;
@@ -212,16 +204,13 @@
             border-radius: 5px !important;
             transition: opacity 0.3s !important;
         }
-
         #video-container:not(:hover) .fullscreen-control {
             opacity: 0.3;
         }
-
         #timeline-slider.fullscreen-control {
             width: 90% !important;
             left: 5% !important;
         }
-
        /* #playback-controls.fullscreen-control button {
             align-self: center;
             background-color: transparent !important;
@@ -278,6 +267,7 @@
         </div>
     </div>
     <div id="hotspot-form">
+        <div id="hotspot-drag-handle">Drag Here</div>
         <input type="text" id="hotspot-text" placeholder="Hotspot Text">
         <input type="text" id="hotspot-link" placeholder="External Link (optional)">
         <select id="hotspot-video-link">
