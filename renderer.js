@@ -1111,7 +1111,6 @@ async function loadProject() {
         hotspotsByVideo = {};
         videoOptions = {};
         currentVideoPath = null;
-        selectedHotspotIndex = null; // Add this line
         updateHotspotList(); // Add this line
         hideVideoControls();
         updateVideoListUI();
