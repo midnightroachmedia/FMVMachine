@@ -160,6 +160,7 @@ function activateHotspotCreation() {
     hotspotOverlay.addEventListener('mousedown', startCreatingHotspot);
     createHotspotBtn.textContent = 'Cancel Hotspot Creation';
     resetHotspotForm();
+    reinitializeTextInputs();
 }
 
 function deactivateHotspotCreation() {
@@ -380,6 +381,7 @@ function editHotspot(index) {
     
     highlightSelectedHotspot(index);
     updateHotspotList();
+    reinitializeTextInputs();
 }
 
 function saveEditedHotspot() {
@@ -985,8 +987,6 @@ async function saveProject() {
 
 async function loadProject() {
     try {
-        console.log('Starting project load process');
-
         const { filePaths } = await ipcRenderer.invoke('show-open-dialog', {
             filters: [{ name: 'FMV Project', extensions: ['fmvp'] }],
             properties: ['openFile']
@@ -1078,12 +1078,6 @@ async function loadProject() {
             }
         }
 
-        for (const [path, options] of Object.entries(videoOptions)) {
-            if (options.playNext) {
-                options.playNext = pathMapping[options.playNext] || options.playNext;
-            }
-        }
-
         console.log('Project data restored');
         console.log('Video list:', videoList);
         console.log('Current video path:', currentVideoPath);
@@ -1100,21 +1094,67 @@ async function loadProject() {
         renderHotspots();
         updateHotspotList();
 
-        console.log('Project loaded successfully');
-        alert('Project loaded successfully!');
+        // New section to handle text input elements
+        setTimeout(() => {
+            const hotspotForm = document.getElementById('hotspot-form');
+            const textInputs = hotspotForm.querySelectorAll('input[type="text"], input[type="number"]');
+            
+            textInputs.forEach(input => {
+                // Remove the input and re-add it to force a refresh
+                const parent = input.parentNode;
+                const nextSibling = input.nextSibling;
+                const newInput = input.cloneNode(true);
+                
+                // Ensure the new input is enabled and interactive
+                newInput.disabled = false;
+                newInput.readOnly = false;
+                
+                // Re-attach event listeners
+                newInput.addEventListener('input', function(e) {
+                    console.log(`Input event on ${this.id}: ${this.value}`);
+                    // Add any necessary logic here
+                });
+
+                parent.replaceChild(newInput, input);
+                
+                console.log(`Refreshed input: ${newInput.id}`);
+            });
+
+            // Try to focus on the first text input
+            if (textInputs.length > 0) {
+                textInputs[0].focus();
+                console.log("Focused on first text input");
+            }
+        }, 100);
+
+        console.log("Project loaded successfully");
     } catch (error) {
         console.error('Error loading project:', error);
-        console.error('Error stack:', error.stack);
         alert(`Failed to load project: ${error.message}`);
-        
-        videoList = [];
-        hotspotsByVideo = {};
-        videoOptions = {};
-        currentVideoPath = null;
-        updateHotspotList(); // Add this line
-        hideVideoControls();
-        updateVideoListUI();
     }
+}
+
+function reinitializeTextInputs() {
+    const hotspotForm = document.getElementById('hotspot-form');
+    const textInputs = hotspotForm.querySelectorAll('input[type="text"], input[type="number"]');
+    
+    textInputs.forEach(input => {
+        input.disabled = false;
+        input.readOnly = false;
+        
+        // Remove existing event listeners
+        const newInput = input.cloneNode(true);
+        
+        // Re-attach event listeners
+        newInput.addEventListener('input', function(e) {
+            console.log(`Input event on ${this.id}: ${this.value}`);
+            // Add any necessary logic here
+        });
+
+        input.parentNode.replaceChild(newInput, input);
+        
+        console.log(`Reinitialized input: ${newInput.id}`);
+    });
 }
 
 async function exportProject() {
