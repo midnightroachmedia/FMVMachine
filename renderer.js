@@ -154,6 +154,8 @@ function deactivateHotspotCreation() {
         hotspotsByVideo[currentVideoPath].pop();
         tempHotspotIndex = null;
     }
+    selectedHotspotIndex = null; // Add this line
+    updateHotspotList(); // Add this line
     renderHotspots();
 }
 
@@ -279,6 +281,8 @@ function cancelHotspot() {
     hotspotsByVideo[currentVideoPath].pop();
     document.getElementById('hotspot-form').style.display = 'none';
     tempHotspotIndex = null;
+    selectedHotspotIndex = null; // Add this line
+    updateHotspotList(); // Add this line
     deactivateHotspotCreation();
     renderHotspots();
 
@@ -297,13 +301,24 @@ function updateHotspotList() {
             li.onclick = () => {
                 if (isEditMode) {
                     editHotspot(index);
+                    selectHotspot(index);
                 }
             };
-            if (index === editingHotspotIndex) {
+            if (index === selectedHotspotIndex) {
                 li.classList.add('selected');
             }
             list.appendChild(li);
         });
+    }
+
+    // Ensure the correct hotspot is highlighted
+    const hotspotListItems = list.children;
+    for (let i = 0; i < hotspotListItems.length; i++) {
+        if (i === selectedHotspotIndex) {
+            hotspotListItems[i].classList.add('selected');
+        } else {
+            hotspotListItems[i].classList.remove('selected');
+        }
     }
 }
 
@@ -321,6 +336,8 @@ function editHotspot(index) {
     isCreatingNewHotspot = false;
     const hotspot = hotspotsByVideo[currentVideoPath][index];
     const form = document.getElementById('hotspot-form');
+
+    document.addEventListener('click', selectHotspot);
     
     document.getElementById('hotspot-text').value = hotspot.text || '';
     document.getElementById('hotspot-link').value = hotspot.externalLink || '';
@@ -381,10 +398,10 @@ function resetHotspotForm() {
 
 function selectHotspot(index) {
     selectedHotspotIndex = index;
-    updateHotspotList();
     renderHotspots();
     deleteHotspotBtn.style.display = 'inline-block';
     
+    updateHotspotList(); // This will now handle the highlighting
 }
 
 function deleteSelectedHotspot() {
@@ -826,6 +843,9 @@ function newProject() {
         return;
     }
 
+    selectedHotspotIndex = null; // Add this line
+    updateHotspotList(); // Add this line
+
     // Reset all state variables
     videoList = [];
     hotspotsByVideo = {};
@@ -1034,6 +1054,8 @@ async function loadProject() {
         hotspotsByVideo = {};
         videoOptions = {};
         currentVideoPath = null;
+        selectedHotspotIndex = null; // Add this line
+        updateHotspotList(); // Add this line
         hideVideoControls();
         updateVideoListUI();
     }
