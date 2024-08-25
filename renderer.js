@@ -84,19 +84,6 @@ document.addEventListener('fullscreenchange', () => {
 importVideoBtn.addEventListener('click', () => {
     ipcRenderer.send('import-video');
 });
-createHotspotBtn.addEventListener('click', () => {
-    if (currentVideoPath && isEditMode) {
-        if (!isCreatingHotspot) {
-            activateHotspotCreation();
-        } else {
-            deactivateHotspotCreation();
-        }
-    } else if (!isEditMode) {
-        alert('Please switch to Edit Mode to create hotspots.');
-    } else {
-        alert('Please select a video first.');
-    }
-});
 toggleModeBtn.addEventListener('click', toggleMode);
 saveProjectBtn.addEventListener('click', saveProject);
 loadProjectBtn.addEventListener('click', loadProject);
@@ -130,7 +117,59 @@ document.getElementById('hotspot-list').addEventListener('click', (event) => {
 });
 videoPlayer.addEventListener('loadedmetadata', handleVideoResize);
 window.addEventListener('resize', handleVideoResize);
-
+//Close Video Options Menu
+document.getElementById('import-video').onclick = closeVideoOptions;
+document.getElementById('create-hotspot').onclick = closeVideoOptions;
+document.getElementById('toggle-mode').onclick = closeVideoOptions;
+document.getElementById('save-project').onclick = closeVideoOptions;
+document.getElementById('load-project').onclick = closeVideoOptions;
+document.getElementById('new-project-btn').onclick = closeVideoOptions;
+document.getElementById('export-project').onclick = closeVideoOptions;
+document.getElementById('play-pause').onclick = closeVideoOptions;
+document.getElementById('timeline-slider').onclick = closeVideoOptions;
+document.getElementById('hotspot-form').onclick = closeVideoOptions;
+document.getElementById('left-sidebar').onclick = closeVideoOptions;
+//Close Hotspot Menu
+document.getElementById('import-video').onclick = saveEditedHotspot;
+document.getElementById('video-options-btn').onclick = saveEditedHotspot;
+document.getElementById('toggle-mode').onclick = saveEditedHotspot;
+document.getElementById('save-project').onclick = saveEditedHotspot;
+document.getElementById('load-project').onclick = saveEditedHotspot;
+document.getElementById('new-project-btn').onclick = saveEditedHotspot;
+document.getElementById('export-project').onclick = saveEditedHotspot;
+document.getElementById('play-pause').onclick = saveEditedHotspot;
+document.getElementById('timeline-slider').onclick = saveEditedHotspot;
+createHotspotBtn.addEventListener('click', () => {
+    if (currentVideoPath && isEditMode) {
+        if (!isCreatingHotspot) {
+            // Check if the hotspot form is currently open
+            const hotspotForm = document.getElementById('hotspot-form');
+            if (hotspotForm.style.display === 'block') {
+                // Save the current hotspot
+                saveEditedHotspot();
+                // Close the hotspot form
+                hotspotForm.style.display = 'none';
+                // Reset any editing state
+                editingHotspotIndex = null;
+                // Hide the delete hotspot button
+                document.getElementById('delete-hotspot').style.display = 'none';
+                // Wait for the form to close before activating new hotspot creation
+                setTimeout(() => {
+                    activateHotspotCreation();
+                }, 100);
+            } else {
+                // If the form is not open, activate hotspot creation immediately
+                activateHotspotCreation();
+            }
+        } else {
+            deactivateHotspotCreation();
+        }
+    } else if (!isEditMode) {
+        alert('Please switch to Edit Mode to create hotspots.');
+    } else {
+        alert('Please select a video first.');
+    }
+});
 
 // VIDEO IMPORT 
 
@@ -212,6 +251,7 @@ function updatePlayPauseButton() {
 }
 
 function activateHotspotCreation() {
+
     isCreatingHotspot = true;
     videoContainer.style.cursor = 'crosshair';
     hotspotOverlay.style.pointerEvents = 'auto';
@@ -980,6 +1020,7 @@ function newProject() {
     toggleModeBtn.textContent = 'Switch to Playback Mode';
     createHotspotBtn.style.display = 'inline-block';
     videoOptionsBtn.style.display = 'none';
+    playPauseBtn.style.display = 'none';
 
     // Clear any open dialogs
     videoOptionsDialogue.style.display = 'none';
