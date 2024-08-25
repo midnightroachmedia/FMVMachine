@@ -1,73 +1,87 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FMVMachine</title>
     <style>
+        :root {
+            --primary-color: #ffbb00;
+            --secondary-color: #ff7b00;
+            --background-color: #1a1a2e;
+            --text-color: #ffffff;
+            --accent-color: #ffff00;
+        }
         body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--background-color);
+            color: var(--text-color);
             display: flex;
             flex-direction: column;
-            height: 100%;
-            margin: 0;
-            font-family: Arial, sans-serif;
+            height: 100vh;
         }
         #top-menu {
+            background: var(--secondary-color);
             padding: 10px;
             padding-top: 50px;
-            background-color: #f0f0f0;
+            display: flex;
+            justify-content: space-evenly;
+            align-items: center;
             -webkit-app-region: drag;
         }
         #top-menu button {
-            -webkit-app-region: no-drag; /* Makes buttons clickable */
+            background-color: rgba(255, 221, 0, 0.459);
+            border: 10px rgb(235, 8, 4);
+            color: var(--background-color);
+            padding: 5px 10px;
+            cursor: pointer;
+            font-weight: bold;
+            -webkit-app-region: no-drag; 
+        }
+        .glow-on-hover:hover {
+            box-shadow: 0 0 10px rgb(235, 231, 4);
         }
 
+        #top-menu button:hover {
+            background-color: rgb(235, 231, 4);
+        }
         #main-content {
             display: flex;
             flex: 1;
+            overflow: hidden;
+            align-items: center;
         }
         #left-sidebar, #right-sidebar {
             width: 200px;
             height: 400px;
+            background-color: rgba(38, 34, 66, 0.851);
             padding: 10px;
-            margin-left: 10px;
-            margin-right: 10px;
-            background-color: #e0e0e0;
             overflow-y: auto;
+            margin: 20px;
         }
         #central-area {
             flex: 1;
-            padding: 10px;
             display: flex;
             flex-direction: column;
             align-items: center;
-        }
-        #controls-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            padding: 20px;
+            position: relative;
         }
         #video-container {
-            position: relative;
-            width: 100%;
-            max-width: 800px;
-        }
-        #video-player {
-            width: 100%;
-        }
-        #video-controls {
-            margin-top: 10px;
-            width: 100%;
-        }
-        #timeline-slider {
-            width: 100%;
-            margin-bottom: 10px;
-        }
-        #timestamp-display {
-            text-align: center;
-            margin-top: 5px;
-            margin-bottom: 5px;
-            font-family: monospace;
-        }
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: none;
+    justify-content: center;
+    align-items: center;
+}
+
+#video-player {
+    max-width: 100%;
+    max-height: 100%;
+}
         #hotspot-overlay {
             position: absolute;
             top: 0;
@@ -78,23 +92,72 @@
         }
         .hotspot {
             position: absolute;
-            background-color: rgba(255, 0, 0, 0.5);
-            border: 2px solid red;
+            background-color: rgba(255, 255, 0, 0.5);
+            border: 2px solid var(--accent-color);
             pointer-events: auto;
             cursor: pointer;
         }
+        #video-controls {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    background-color: rgba(0, 255, 255, 0.2);
+    margin-top: 0px;
+}
+#button-container {
+    display: none;
+    justify-content: center;
+    margin-top: 0px;
+}
+        #timeline-slider {
+            display: none;
+            width: 90%;
+            margin-left: 5%;
+        }
+        #video-options-btn,
+#play-pause {
+    display: inline-block;
+    margin: 5px;
+    padding: 5px 10px;
+    background-color: rgb(255, 136, 0);
+    color: var(--text-color);
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+        #timestamp-display {
+            display: none;
+            text-align: center;
+            margin-top: 2px;
+            margin-bottom: 2px;
+            font-family: monospace;
+        }
+        #video-list, #hotspot-list {
+            list-style-type: none;
+            padding: 0;
+            text-align: center;
+        }
+        #video-list li, #hotspot-list li {
+            padding: 5px;
+            margin-bottom: 5px;
+            background-color: rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            text-align: center;
+        }
+        #video-list li.selected, #hotspot-list li.selected {
+            background-color: rgba(255, 255, 0, 0.438);
+            font-weight: bold;
+        }
+        #video-options-dialogue,
         #hotspot-form {
             display: none;
             position: absolute;
-            top: 100%;
-            left: 100%;
-            background-color: rgba(240, 240, 240, 0.9);
+            background-color: rgba(27, 30, 60, 0.779);
             padding: 20px;
-            border-radius: 5px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-            max-width: 400px;
-            width: 90%;
+            border: 2px solid var(--primary-color);
             z-index: 1000;
+            align-items: center;
         }
         #hotspot-drag-handle {
             cursor: move;
@@ -103,16 +166,17 @@
             margin-bottom: 10px;
             text-align: center;
             font-weight: bold;
+            width: 90%;
         }
         #hotspot-form input[type="text"],
         #hotspot-form input[type="number"],
         #hotspot-form select {
-            width: 100%;
+            width: 85%;
             padding: 2%;
             margin-bottom: 2%;
             border: 1px solid #ccc;
             border-radius: 4px;
-            font-size: 0.9em;
+            font-size: 0.8em;
         }
         #hotspot-form .time-range {
             display: flex;
@@ -155,47 +219,18 @@
             background-color: #da190b;
         }
         @media (max-width: 600px) {
-        #hotspot-form {
-            width: 95%;
-    }
-        #hotspot-form .time-range input[type="number"] {
-            width: 40%;
-    }
-        #hotspot-form button {
-            width: 100%;
-            margin-bottom: 2%;
-    }
+            #hotspot-form {
+                width: 95%;
+            }
+            #hotspot-form .time-range input[type="number"] {
+                width: 40%;
+            }
+            #hotspot-form button {
+                width: 100%;
+                margin-bottom: 2%;
+            }
         }
-        .highlighted {
-            border: 2px solid yellow; /* Example highlight style */
-        }
-        #video-list li, #hotspot-list li {
-            cursor: pointer;
-            padding: 5px;
-            margin-bottom: 5px;
-            transition: background-color 0.3s ease;
-        }
-        #video-list li:hover, #hotspot-list li:hover {
-            background-color: #e0c00a;
-        }
-        #video-list li.selected, #hotspot-list li.selected {
-            background-color: #e0c00a;
-            font-weight: bold;
-        }
-        #video-options-dialogue {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: white;
-            padding: 20px;
-            border: 1px solid black;
-            z-index: 1000;
-        }
-        #video-options-dialogue div {
-            margin-bottom: 10px;
-        }
-        .fullscreen-control {
+       /* .fullscreen-control {
             position: fixed !important;
             z-index: 9999 !important;
             background-color: rgba(0, 0, 0, 0.7) !important;
@@ -210,19 +245,11 @@
         #timeline-slider.fullscreen-control {
             width: 90% !important;
             left: 5% !important;
-        }
-       /* #playback-controls.fullscreen-control button {
-            align-self: center;
-            background-color: transparent !important;
-            border: none !important;
-            color: white !important;
-            font-size: 18px !important;
-            cursor: pointer !important;
         }*/
     </style>
 </head>
 <body>
-    <div id="video-options-dialogue" style="display: none;">
+    <div id="video-options-dialogue">
         <h3>Video Options</h3>
         <div>
             <label for="play-next-select">Play Next:</label>
@@ -240,10 +267,10 @@
         <button id="create-hotspot">Create Hotspot</button>
         <button id="delete-hotspot">Delete Hotspot</button>
         <button id="toggle-mode">Switch to Playback Mode</button>
-        <button id="fullscreen-toggle">Toggle Fullscreen</button>
         <button id="new-project-btn">New Project</button>
         <button id="save-project">Save Project</button>
         <button id="load-project">Load Project</button>
+        <button id="export-project">Export Project</button>
     </div>
     <div id="main-content">
         <div id="left-sidebar">
@@ -256,11 +283,13 @@
                 <div id="hotspot-overlay"></div>
             </div>
             <div id="video-controls"></div>
-            <input type="range" id="timeline-slider" min="0" max="100" value="0">
-            <div id="timestamp-display">0:00 / 0:00</div>
-            <div id="playback-controls"></div>
-            <button id="video-options-btn">Video Options</button>
-        </div>
+                <input type="range" id="timeline-slider" min="0" max="100" value="0">
+                <div id="timestamp-display">0:00 / 0:00</div>
+                <div id="button-container">
+                    <button id="play-pause">Play/Pause</button>
+                    <button id="video-options-btn">Video Options</button>
+                </div>
+            </div>
         <div id="right-sidebar">
             <h3>Hotspots</h3>
             <ul id="hotspot-list"></ul>

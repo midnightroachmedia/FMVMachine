@@ -10,9 +10,9 @@ let videoList = [];
 let hotspotsByVideo = {};
 let currentVideoPath = null;
 let isCreatingHotspot = false;
-let tempHotspot = null;
 let tempHotspotIndex = null;
 let isEditMode = true;
+let editingHotspotIndex = null;
 let selectedVideoIndex = null;
 let selectedHotspotIndex = null;
 let videoOptions = {};
@@ -27,17 +27,17 @@ let initialY;
 let xOffset = 0;
 let yOffset = 0;
 
+//Global Variables
 const importVideoBtn = document.getElementById('import-video');
 const createHotspotBtn = document.getElementById('create-hotspot');
 const toggleModeBtn = document.getElementById('toggle-mode');
-const fullscreenToggleBtn = document.getElementById('fullscreen-toggle');
 const saveProjectBtn = document.getElementById('save-project');
 const loadProjectBtn = document.getElementById('load-project');
 const videoPlayer = document.getElementById('video-player');
 const videoContainer = document.getElementById('video-container');
 const hotspotOverlay = document.getElementById('hotspot-overlay');
 const videoControls = document.getElementById('video-controls');
-const playbackControls = document.getElementById('playback-controls');
+const playPauseBtn = document.getElementById('play-pause');
 const timelineSlider = document.getElementById('timeline-slider');
 const timestampDisplay = document.getElementById('timestamp-display');
 const videoOptionsBtn = document.getElementById('video-options-btn');
@@ -50,14 +50,20 @@ const deleteHotspotBtn = document.getElementById('delete-hotspot');
 const newProjectBtn = document.getElementById('new-project-btn');
 const hotspotForm = document.getElementById("hotspot-form");
 const dragHandle = document.getElementById("hotspot-drag-handle");
+const exportBtn = document.getElementById('export-project');
+const topMenuButtons = document.querySelectorAll('#top-menu button');
+const btnContainer = document.getElementById('button-container');
+document.getElementById('right-sidebar').style.textAlign = 'center';
+document.getElementById('left-sidebar').style.textAlign = 'center';
+deleteHotspotBtn.style.display = 'none';
+videoOptionsBtn.classList.add('glow-on-hover');
+topMenuButtons.forEach(button => {
+    button.classList.add('glow-on-hover');
+});
+playPauseBtn.classList.add('glow-on-hover');
 
-// Add the export button to the top menu
-const exportBtn = document.createElement('button');
-exportBtn.textContent = 'Export Project';
-exportBtn.id = 'export-project';
-document.getElementById('top-menu').appendChild(exportBtn);
+// Global Event Listeners
 
-deleteHotspotBtn.addEventListener('click', deleteSelectedHotspot);
 videoOptionsBtn.addEventListener('click', showVideoOptions);
 saveVideoOptionsBtn.addEventListener('click', saveVideoOptions);
 closeVideoOptionsBtn.addEventListener('click', closeVideoOptions);
@@ -67,18 +73,17 @@ newProjectBtn.addEventListener('click', newProject);
 dragHandle.addEventListener("mousedown", dragStart);
 document.addEventListener("mousemove", drag);
 document.addEventListener("mouseup", dragEnd);
-
 document.addEventListener('fullscreenchange', () => {
     setTimeout(() => {
         renderHotspots();
         updateHotspotVisibility();
-    }, 100);
+        handleFullscreenChange();
+        handleVideoResize();
+    }, 200);
 });
-
 importVideoBtn.addEventListener('click', () => {
     ipcRenderer.send('import-video');
 });
-
 createHotspotBtn.addEventListener('click', () => {
     if (currentVideoPath && isEditMode) {
         if (!isCreatingHotspot) {
@@ -92,12 +97,42 @@ createHotspotBtn.addEventListener('click', () => {
         alert('Please select a video first.');
     }
 });
-
 toggleModeBtn.addEventListener('click', toggleMode);
-fullscreenToggleBtn.addEventListener('click', toggleFullscreen);
 saveProjectBtn.addEventListener('click', saveProject);
 loadProjectBtn.addEventListener('click', loadProject);
 exportBtn.addEventListener('click', exportProject);
+videoPlayer.addEventListener('timeupdate', () => {
+    updateTimelineSlider();
+    updateHotspotVisibility();
+        
+    });
+window.addEventListener('resize', handleResize);
+videoPlayer.addEventListener('loadedmetadata', handleResize);
+document.getElementById('hotspot-start-time').addEventListener('input', updateHotspotTimeRange);
+document.getElementById('hotspot-end-time').addEventListener('input', updateHotspotTimeRange);
+document.getElementById('play-pause').addEventListener('click', togglePlayPause);
+window.addEventListener('resize', () => {
+    const form = document.getElementById('hotspot-form');
+    if (form.style.display !== 'none') {
+        const videoRect = videoPlayer.getBoundingClientRect();
+        const formRect = form.getBoundingClientRect();
+        form.style.left = `${videoRect.left + (videoRect.width - formRect.width) / 2}px`;
+        form.style.top = `${videoRect.top + (videoRect.height - formRect.height) / 2}px`;
+    }
+});
+document.getElementById('hotspot-list').addEventListener('click', (event) => {
+    const li = event.target.closest('li');
+    if (li) {
+        const index = parseInt(li.dataset.index, 10);
+        selectHotspot(index);
+        editHotspot(index);
+    }
+});
+videoPlayer.addEventListener('loadedmetadata', handleVideoResize);
+window.addEventListener('resize', handleVideoResize);
+
+
+// VIDEO IMPORT 
 
 ipcRenderer.on('video-imported', (event, filePath) => {
     console.log('Video imported:', filePath);
@@ -106,8 +141,17 @@ ipcRenderer.on('video-imported', (event, filePath) => {
     updateVideoLinkDropdown();
 });
 
+
+//FUNCTIONS
+
 function initializeApp() {
     setInterval(ensureControlsVisible, 1000);
+}
+
+function initializeVideoControls() {
+    updatePlayPauseButton();
+    playPauseBtn.style.display = 'block';
+    // ... any other initialization code
 }
 
 function addVideoToList(filePath) {
@@ -153,6 +197,20 @@ function selectVideo(index) {
     updateVideoListUI();
 }
 
+function togglePlayPause() {
+    if (videoPlayer.paused) {
+        videoPlayer.play();
+    } else {
+        videoPlayer.pause();
+    }
+    updatePlayPauseButton();
+}
+
+function updatePlayPauseButton() {
+    const playPauseBtn = document.getElementById('play-pause');
+    playPauseBtn.textContent = videoPlayer.paused ? 'Play' : 'Pause';
+}
+
 function activateHotspotCreation() {
     isCreatingHotspot = true;
     videoContainer.style.cursor = 'crosshair';
@@ -169,13 +227,8 @@ function deactivateHotspotCreation() {
     hotspotOverlay.style.pointerEvents = 'none';
     hotspotOverlay.removeEventListener('mousedown', startCreatingHotspot);
     createHotspotBtn.textContent = 'Create Hotspot';
-    deleteHotspotBtn.style.display = 'none';
-    if (tempHotspotIndex !== null) {
-        hotspotsByVideo[currentVideoPath].pop();
-        tempHotspotIndex = null;
-    }
-    selectedHotspotIndex = null; // Add this line
-    updateHotspotList(); // Add this line
+
+    updateHotspotList(); 
     renderHotspots();
 }
 
@@ -199,7 +252,9 @@ function startCreatingHotspot(event) {
         text: '',
         externalLink: '',
         videoLink: '',
-        time: videoPlayer.currentTime
+        time: videoPlayer.currentTime,
+        startTime: Math.floor(videoPlayer.currentTime),
+        endTime: Math.floor(videoPlayer.duration)
     };
 
     hotspotsByVideo[currentVideoPath].push(newHotspot);
@@ -213,6 +268,7 @@ function startCreatingHotspot(event) {
     document.getElementById('cancel-hotspot').style.display = 'inline-block';
     document.getElementById('save-hotspot').textContent = 'Save Hotspot';
 
+    // Add these event listeners to the document
     document.addEventListener('mousemove', resizeHotspot);
     document.addEventListener('mouseup', finishCreatingHotspot);
 
@@ -248,6 +304,46 @@ function resizeHotspot(event) {
     renderHotspots();
 }
 
+function centerHotspotForm() {
+    setTimeout(() => {
+        const form = document.getElementById('hotspot-form');
+        const videoRect = videoPlayer.getBoundingClientRect();       
+        // Ensure the form is visible before measuring
+        form.style.display = 'block';       
+        // Get the form's dimensions
+        const formRect = form.getBoundingClientRect();
+        // Calculate the centered position
+        form.style.left = `${videoRect.left + (videoRect.width - formRect.width) / 2}px`;
+        form.style.top = `${videoRect.top + (videoRect.height - formRect.height) / 2}px`;
+    }, 0);
+}
+
+function centerVideoOptionsDialogue() {
+    setTimeout(() => {
+        const dialogue = document.getElementById('video-options-dialogue');
+        const videoRect = videoPlayer.getBoundingClientRect();
+        
+        // Ensure the dialogue is visible before measuring
+        dialogue.style.display = 'block';
+        
+        // Get the dialogue's dimensions
+        const dialogueRect = dialogue.getBoundingClientRect();
+        
+        // Calculate the centered position
+        dialogue.style.left = `${videoRect.left + (videoRect.width - dialogueRect.width) / 2}px`;
+        dialogue.style.top = `${videoRect.top + (videoRect.height - dialogueRect.height) / 2}px`;
+        
+        // Ensure the dialogue stays within the video container
+        const minLeft = videoRect.left;
+        const maxLeft = videoRect.right - dialogueRect.width;
+        const minTop = videoRect.top;
+        const maxTop = videoRect.bottom - dialogueRect.height;
+        
+        dialogue.style.left = `${Math.max(minLeft, Math.min(maxLeft, parseInt(dialogue.style.left)))}px`;
+        dialogue.style.top = `${Math.max(minTop, Math.min(maxTop, parseInt(dialogue.style.top)))}px`;
+    }, 0);
+}
+
 function finishCreatingHotspot(event) {
     if (!isEditMode || tempHotspotIndex === null) return;
     event.preventDefault();
@@ -258,13 +354,7 @@ function finishCreatingHotspot(event) {
 
     const form = document.getElementById('hotspot-form');
     form.style.display = 'block';
-    const hotspot = hotspotsByVideo[currentVideoPath][tempHotspotIndex];
-    
-    const videoRect = videoPlayer.getBoundingClientRect();
-    const scaleX = videoRect.width / originalVideoWidth;
-    const scaleY = videoRect.height / originalVideoHeight;
-    form.style.left = `${hotspot.x * scaleX + hotspot.width * scaleX}px`;
-    form.style.top = `${hotspot.y * scaleY}px`;
+    centerHotspotForm();
 
     document.getElementById('hotspot-text').value = '';
     document.getElementById('hotspot-link').value = '';
@@ -282,36 +372,43 @@ function finishCreatingHotspot(event) {
 }
 
 function saveHotspot() {
-    const hotspot = hotspotsByVideo[currentVideoPath][tempHotspotIndex];
-    hotspot.text = document.getElementById('hotspot-text').value;
-    hotspot.externalLink = document.getElementById('hotspot-link').value;
-    hotspot.videoLink = document.getElementById('hotspot-video-link').value;
-    hotspot.startTime = parseInt(document.getElementById('hotspot-start-time').value) || 0;
-    hotspot.endTime = parseInt(document.getElementById('hotspot-end-time').value) || Math.floor(videoPlayer.duration);
+    if (currentVideoPath && hotspotsByVideo[currentVideoPath] && tempHotspotIndex !== null) {
+        const hotspot = hotspotsByVideo[currentVideoPath][tempHotspotIndex];
+        if (hotspot) {
+            hotspot.text = document.getElementById('hotspot-text').value;
+            hotspot.externalLink = document.getElementById('hotspot-link').value;
+            hotspot.videoLink = document.getElementById('hotspot-video-link').value;
+            hotspot.startTime = parseInt(document.getElementById('hotspot-start-time').value) || 0;
+            hotspot.endTime = parseInt(document.getElementById('hotspot-end-time').value) || Math.floor(videoPlayer.duration);
 
-    document.getElementById('hotspot-form').style.display = 'none';
-    updateHotspotList();
-    renderHotspots();
+            document.getElementById('hotspot-form').style.display = 'none';
+            updateHotspotList();
+            renderHotspots();
 
-    tempHotspotIndex = null;
-    deactivateHotspotCreation();
+            tempHotspotIndex = null;
+            deactivateHotspotCreation();
+        } else {
+            console.error('Hotspot not found at index:', tempHotspotIndex);
+        }
+    } else {
+        console.error('Unable to save hotspot: Invalid state');
+    }
 }
 
 function cancelHotspot() {
     hotspotsByVideo[currentVideoPath].pop();
     document.getElementById('hotspot-form').style.display = 'none';
+    document.getElementById('delete-hotspot').style.display = 'none';
     tempHotspotIndex = null;
-    selectedHotspotIndex = null; // Add this line
-    updateHotspotList(); // Add this line
+    updateHotspotList(); 
     deactivateHotspotCreation();
     renderHotspots();
-    deleteHotspotBtn.style.display = 'none';
 
 }
 
 function updateHotspotList() {
-    const list = document.getElementById('hotspot-list');
-    list.innerHTML = '';
+    const hotspotListElement = document.getElementById('hotspot-list');
+    hotspotListElement.innerHTML = '';
     if (currentVideoPath && hotspotsByVideo[currentVideoPath]) {
         hotspotsByVideo[currentVideoPath].forEach((hotspot, index) => {
             const li = document.createElement('li');
@@ -319,27 +416,15 @@ function updateHotspotList() {
             if (hotspot.videoLink) {
                 li.textContent += ` (Links to: ${path.basename(hotspot.videoLink)})`;
             }
-            li.onclick = () => {
-                if (isEditMode) {
-                    editHotspot(index);
-                    selectHotspot(index);
-                }
-            };
+            li.dataset.index = index;
             if (index === selectedHotspotIndex) {
                 li.classList.add('selected');
             }
-            list.appendChild(li);
+            if (selectedHotspotIndex !== null && selectedHotspotIndex >= hotspotsByVideo[currentVideoPath].length) {
+                selectedHotspotIndex = null;
+            }
+            hotspotListElement.appendChild(li);
         });
-    }
-
-    // Ensure the correct hotspot is highlighted
-    const hotspotListItems = list.children;
-    for (let i = 0; i < hotspotListItems.length; i++) {
-        if (i === selectedHotspotIndex) {
-            hotspotListItems[i].classList.add('selected');
-        } else {
-            hotspotListItems[i].classList.remove('selected');
-        }
     }
 }
 
@@ -349,14 +434,13 @@ function formatTime(seconds) {
     return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
 }
 
-let editingHotspotIndex = null;
-let isCreatingNewHotspot = false;
-
 function editHotspot(index) {
     editingHotspotIndex = index;
-    isCreatingNewHotspot;
+    highlightSelectedHotspot(index);
     const hotspot = hotspotsByVideo[currentVideoPath][index];
     const form = document.getElementById('hotspot-form');
+    centerHotspotForm(); 
+    hotspotForm.style.alignContent = 'center';
 
     document.addEventListener('click', selectHotspot);
     
@@ -366,52 +450,38 @@ function editHotspot(index) {
     document.getElementById('hotspot-start-time').value = hotspot.startTime || 0;
     document.getElementById('hotspot-end-time').value = hotspot.endTime || Math.floor(videoPlayer.duration);
     
-    const videoRect = videoPlayer.getBoundingClientRect();
-    const scaleX = videoRect.width / originalVideoWidth;
-    const scaleY = videoRect.height / originalVideoHeight;
-    form.style.left = `${hotspot.x * scaleX + hotspot.width * scaleX}px`;
-    form.style.top = `${hotspot.y * scaleY}px`;
-    
     // Hide the Cancel button when editing an existing hotspot
     document.getElementById('cancel-hotspot').style.display = 'none';
+    deleteHotspotBtn.style.display = 'inline-block';
     document.getElementById('save-hotspot').textContent = 'Update Hotspot';
+    document.getElementById('save-hotspot').onclick = saveEditedHotspot;
+    document.getElementById('delete-hotspot').addEventListener('click', cancelHotspot);
     
     form.style.display = 'block';
-    deleteHotspotBtn.style.display = 'inline-block';
-    
-    highlightSelectedHotspot(index);
+
     updateHotspotList();
     reinitializeTextInputs();
 }
 
 function saveEditedHotspot() {
-    if (editingHotspotIndex === null) return;
-    
-    const hotspot = hotspotsByVideo[currentVideoPath][editingHotspotIndex];
-    hotspot.text = document.getElementById('hotspot-text').value;
-    hotspot.externalLink = document.getElementById('hotspot-link').value;
-    hotspot.videoLink = document.getElementById('hotspot-video-link').value;
-    hotspot.startTime = parseInt(document.getElementById('hotspot-start-time').value) || 0;
-    hotspot.endTime = parseInt(document.getElementById('hotspot-end-time').value) || Math.floor(videoPlayer.duration);
-    
-    document.getElementById('hotspot-form').style.display = 'none';
-    
-    updateHotspotList();
-    renderHotspots();
-    updateHotspotVisibility();
-    deleteHotspotBtn.style.display = 'none';
+    if (editingHotspotIndex !== null) {
+        const hotspot = hotspotsByVideo[currentVideoPath][editingHotspotIndex];
+        hotspot.text = document.getElementById('hotspot-text').value;
+        hotspot.externalLink = document.getElementById('hotspot-link').value;
+        hotspot.videoLink = document.getElementById('hotspot-video-link').value;
+        hotspot.startTime = parseInt(document.getElementById('hotspot-start-time').value);
+        hotspot.endTime = parseInt(document.getElementById('hotspot-end-time').value);
 
-    console.log('Hotspot saved:', hotspot); // For debugging
+        updateHotspotList();
+        renderHotspots();
 
-    editingHotspotIndex = null;
-}
+        document.getElementById('hotspot-form').style.display = 'none';
+        document.getElementById('delete-hotspot').style.display = 'none';
+        console.log('Hotspot saved:', hotspot);
+        console.log('Selected hotspot index after save:', selectedHotspotIndex);
 
-function cancelEditHotspot() {
-    document.getElementById('hotspot-form').style.display = 'none';
-    const hotspotElements = hotspotOverlay.getElementsByClassName('hotspot');
-    Array.from(hotspotElements).forEach(el => el.style.border = '2px dashed yellow');
-    deleteHotspotBtn.style.display = 'none';
-
+        editingHotspotIndex = null;
+    }
 }
 
 function dragStart(e) {
@@ -419,7 +489,7 @@ function dragStart(e) {
         isDragging = true;
         initialX = e.clientX - xOffset;
         initialY = e.clientY - yOffset;
-        e.preventDefault(); // Prevent text selection during drag
+        e.preventDefault();
     }
 }
 
@@ -453,23 +523,14 @@ function resetHotspotForm() {
 }
 
 function selectHotspot(index) {
-    selectedHotspotIndex = index;
-    renderHotspots();   
-    updateHotspotList(); // This will now handle the highlighting
-}
-
-function deleteSelectedHotspot() {
-    if (selectedHotspotIndex !== null && currentVideoPath) {
-        hotspotsByVideo[currentVideoPath].splice(selectedHotspotIndex, 1);
-        selectedHotspotIndex = null;
-        updateHotspotList();
-        renderHotspots();
-        cancelEditHotspot();
-        deleteHotspotBtn.style.display = 'none';
-    }
+    console.log(`Selecting hotspot at index ${index}`);
+    selectedHotspotIndex = parseInt(index, 10);
+    highlightSelectedHotspot(selectedHotspotIndex);
 }
 
 function displayVideo(filePath) {
+    videoContainer.style.display = 'flex';
+    btnContainer.style.display = 'flex';
     if (currentVideoPath !== filePath) {
         // Close the hotspot edit menu if it's open
         document.getElementById('hotspot-form').style.display = 'none';
@@ -482,6 +543,7 @@ function displayVideo(filePath) {
         originalVideoWidth = videoPlayer.videoWidth;
         originalVideoHeight = videoPlayer.videoHeight;
         renderHotspots();
+        initializeVideoControls();
     };
 
     const index = videoList.indexOf(filePath);
@@ -506,12 +568,10 @@ function displayVideo(filePath) {
     videoPlayer.loop = options.loop || false;
 
     videoControls.style.display = 'block';
-    createPlayPauseButton();
     updateTimestamp();
 
     selectedHotspotIndex = null;
     updateHotspotList();
-    deleteHotspotBtn.style.display = 'none';
 
     videoPlayer.currentTime = 0;
 
@@ -545,6 +605,7 @@ function showVideoOptions() {
     playNextSelect.value = currentOptions.playNext || '';
     loopCheckbox.checked = currentOptions.loop || false;
 
+    centerVideoOptionsDialogue();
     videoOptionsDialogue.style.display = 'block';
 }
 
@@ -579,9 +640,7 @@ function transitionToNextVideo(nextVideoPath) {
         console.log('Ensuring controls are visible');
         videoControls.style.display = 'block';
         timelineSlider.style.display = 'block';
-        playbackControls.style.display = 'block';
         updateVideoPlayerControls();
-        createPlayPauseButton();
     }, 100);
 }
 
@@ -589,7 +648,6 @@ function ensureControlsVisible() {
     if (!isEditMode && currentVideoPath) {
         videoControls.style.display = 'block';
         timelineSlider.style.display = 'block';
-        playbackControls.style.display = 'block';
     }
 }
 
@@ -604,15 +662,6 @@ function onVideoLoaded() {
     }
     videoControls.style.display = 'block';
     timelineSlider.style.display = 'block';
-    playbackControls.style.display = 'block';
-}
-
-function createPlayPauseButton() {
-    playbackControls.innerHTML = '';
-    const playPauseBtn = document.createElement('button');
-    playPauseBtn.textContent = 'Play/Pause';
-    playPauseBtn.addEventListener('click', togglePlayPause);
-    playbackControls.appendChild(playPauseBtn);
 }
 
 function togglePlayPause() {
@@ -694,24 +743,17 @@ function updateHotspotVisibility() {
 }
 
 function highlightSelectedHotspot(index) {
-    const hotspotElements = hotspotOverlay.getElementsByClassName('hotspot');
-    Array.from(hotspotElements).forEach((el, i) => {
-        el.style.border = i === index ? '2px solid red' : '2px dashed yellow';
-    });
-}
-
-document.getElementById('save-hotspot').addEventListener('click', saveEditedHotspot);
-document.getElementById('cancel-hotspot').addEventListener('click', () => {
-    document.getElementById('hotspot-form').style.display = 'none';
-    editingHotspotIndex = null;
+    const hotspotList = document.getElementById('hotspot-list');
+    const hotspotItems = hotspotList.getElementsByTagName('li');
+    for (let i = 0; i < hotspotItems.length; i++) {
+        if (i === index) {
+            hotspotItems[i].classList.add('selected');
+        } else {
+            hotspotItems[i].classList.remove('selected');
+        }
+    }
     renderHotspots();
-});
-
-videoPlayer.addEventListener('timeupdate', () => {
-    updateTimelineSlider();
-    updateHotspotVisibility();
-        
-    });
+}
 
 function updateHotspotTimeRange() {
     const startTime = parseInt(document.getElementById('hotspot-start-time').value) || 0;
@@ -724,9 +766,6 @@ function updateHotspotTimeRange() {
         updateHotspotVisibility();
     }
 }
-
-document.getElementById('hotspot-start-time').addEventListener('input', updateHotspotTimeRange);
-document.getElementById('hotspot-end-time').addEventListener('input', updateHotspotTimeRange);
 
 function handleHotspotClick(event) {
     event.stopPropagation();
@@ -762,14 +801,9 @@ function toggleMode() {
     selectedHotspotIndex = null;
     updateHotspotList();
 
-    if (!isEditMode) {
-        deleteHotspotBtn.style.display = 'none';
-    }
-
     if (!isEditMode || (isEditMode && currentVideoPath)) {
         videoControls.style.display = 'block';
         timelineSlider.style.display = 'block';
-        createPlayPauseButton();
     } else {
         hideVideoControls();
     }
@@ -783,7 +817,6 @@ function toggleMode() {
     
     if (currentVideoPath) {
         videoControls.style.display = 'block';
-        createPlayPauseButton();
     } else {
         hideVideoControls();
     }
@@ -793,28 +826,38 @@ function updateVideoPlayerControls() {
     videoPlayer.controls = false;
     videoControls.style.display = 'block';
     timelineSlider.style.display = 'block';
-    playbackControls.style.display = 'block';
 }
 
 function hideVideoControls() {
     videoControls.style.display = 'none';
     timelineSlider.style.display = 'none';
-    playbackControls.innerHTML = '';
 }
 
 function toggleFullscreen() {
     if (!document.fullscreenElement) {
-        videoContainer.requestFullscreen().catch(err => {
+        videoContainer.requestFullscreen().then(() => {
+            setTimeout(() => {
+                handleVideoResize();
+            }, 200);
+        }).catch(err => {
             console.log(`Error attempting to enable fullscreen: ${err.message}`);
         });
     } else {
-        document.exitFullscreen();
+        document.exitFullscreen().then(() => {
+            setTimeout(() => {
+                handleVideoResize();
+            }, 200);
+        });
     }
-    // Add a slight delay to ensure the fullscreen transition is complete
-    setTimeout(() => {
-        renderHotspots();
-        updateHotspotVisibility();
-    }, 100);
+}
+
+function handleVideoResize() {
+    const videoRect = videoPlayer.getBoundingClientRect();
+    originalVideoWidth = videoPlayer.videoWidth;
+    originalVideoHeight = videoPlayer.videoHeight;
+    videoPlayer.style.width = '100%';
+    videoPlayer.style.height = '100%';
+    renderHotspots();
 }
 
 function updateControlsVisibility() {
@@ -880,20 +923,19 @@ function handleResize() {
     }
 }
 
-window.addEventListener('resize', handleResize);
-videoPlayer.addEventListener('loadedmetadata', handleResize);
-
-function updateHotspotVisibility() {
-    const currentTime = Math.floor(videoPlayer.currentTime);
-    if (currentVideoPath && hotspotsByVideo[currentVideoPath]) {
-        hotspotsByVideo[currentVideoPath].forEach((hotspot, index) => {
-            const hotspotElement = hotspotOverlay.querySelector(`[data-index="${index}"]`);
-            if (hotspotElement) {
-                const isVisible = currentTime >= (hotspot.startTime || 0) && currentTime <= (hotspot.endTime || Math.floor(videoPlayer.duration));
-                hotspotElement.style.display = isVisible ? 'block' : 'none';
-            }
-        });
+function handleFullscreenChange() {
+    const isFullscreen = document.fullscreenElement !== null;
+    const videoContainer = document.getElementById('video-container');
+    if (isFullscreen) {
+        videoContainer.style.maxWidth = '100vw';
+        videoContainer.style.width = '100vw';
+        videoContainer.style.height = '100vh';
+    } else {
+        videoContainer.style.maxWidth = '800px';
+        videoContainer.style.width = '100%';
+        videoContainer.style.height = 'auto';
     }
+    renderHotspots();
 }
 
 function newProject() {
@@ -902,8 +944,8 @@ function newProject() {
         return;
     }
 
-    selectedHotspotIndex = null; // Add this line
-    updateHotspotList(); // Add this line
+    selectedHotspotIndex = null;
+    updateHotspotList();
 
     // Reset all state variables
     videoList = [];
@@ -932,14 +974,12 @@ function newProject() {
     videoControls.style.display = 'none';
     timelineSlider.style.display = 'none';
     timestampDisplay.textContent = '0:00 / 0:00';
-    playbackControls.innerHTML = '';
 
     // Reset mode
     isEditMode = true;
     toggleModeBtn.textContent = 'Switch to Playback Mode';
     createHotspotBtn.style.display = 'inline-block';
     videoOptionsBtn.style.display = 'none';
-    deleteHotspotBtn.style.display = 'none';
 
     // Clear any open dialogs
     videoOptionsDialogue.style.display = 'none';
@@ -1128,6 +1168,7 @@ async function loadProject() {
         }, 100);
 
         console.log("Project loaded successfully");
+        alert('Project loaded successfully!');
     } catch (error) {
         console.error('Error loading project:', error);
         alert(`Failed to load project: ${error.message}`);

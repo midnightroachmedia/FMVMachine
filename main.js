@@ -34,7 +34,7 @@ function createWindow() {
 
   win.loadFile('index.html');
   // Uncomment the following line to open DevTools on start
-  // win.webContents.openDevTools();
+  //win.webContents.openDevTools();
   Menu.setApplicationMenu(null);
   win.setMenuBarVisibility(false);
   if (process.platform === 'darwin') {
