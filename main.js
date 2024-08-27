@@ -13,7 +13,7 @@ function createWindow() {
       enableRemoteModule: true
     },
     autoHideMenuBar: true,
-    frame: process.platform !== 'darwin', // Use frameless window on macOS
+    frame: process.platform !== 'darwin',
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 20, y: 20 },
     icon: path.join(__dirname, 'assets', 
